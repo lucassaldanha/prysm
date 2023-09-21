@@ -81,21 +81,29 @@ func logBlockSyncStatus(block interfaces.ReadOnlyBeaconBlock, blockRoot [32]byte
 	level := log.Logger.GetLevel()
 	if level >= logrus.DebugLevel {
 		parentRoot := block.ParentRoot()
+
 		lf := logrus.Fields{
 			"slot":                      block.Slot(),
 			"slotInEpoch":               block.Slot() % params.BeaconConfig().SlotsPerEpoch,
-			"block":                     fmt.Sprintf("0x%s...", hex.EncodeToString(blockRoot[:])[:8]),
+			"blockRoot":                 fmt.Sprintf("0x%s...", hex.EncodeToString(blockRoot[:])[:8]),
 			"epoch":                     slots.ToEpoch(block.Slot()),
-			"justifiedEpoch":            justified.Epoch,
-			"justifiedRoot":             fmt.Sprintf("0x%s...", hex.EncodeToString(justified.Root)[:8]),
-			"finalizedEpoch":            finalized.Epoch,
-			"finalizedRoot":             fmt.Sprintf("0x%s...", hex.EncodeToString(finalized.Root)[:8]),
 			"parentRoot":                fmt.Sprintf("0x%s...", hex.EncodeToString(parentRoot[:])[:8]),
 			"version":                   version.String(block.Version()),
 			"sinceSlotStartTime":        prysmTime.Now().Sub(startTime),
 			"chainServiceProcessedTime": prysmTime.Now().Sub(receivedTime),
-			"deposits":                  len(block.Body().Deposits()),
 		}
+
+		if slots.ToEpoch(block.Slot())-finalized.Epoch > 2 {
+			lf["finalizedRoot"] = fmt.Sprintf("0x%s...", hex.EncodeToString(finalized.Root)[:8])
+			lf["finalizedEpoch"] = finalized.Epoch
+			lf["justifiedRoot"] = fmt.Sprintf("0x%s...", hex.EncodeToString(justified.Root)[:8])
+			lf["justifiedEpoch"] = justified.Epoch
+		}
+
+		if len(block.Body().Deposits()) > 0 {
+			lf["deposits"] = len(block.Body().Deposits())
+		}
+
 		log.WithFields(lf).Debug("Synced new block")
 	} else {
 		log.WithFields(logrus.Fields{
