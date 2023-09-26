@@ -90,6 +90,17 @@ func runTest(t *testing.T, config string, fork int, basePath string) {
 					if step.Tick != nil {
 						builder.Tick(t, int64(*step.Tick))
 					}
+					if step.Blobs != nil && *step.Blobs != "null" {
+						blobsFile, err := util.BazelFileBytes(testsFolderPath, folder.Name(), fmt.Sprint(*step.Blobs, ".ssz_snappy"))
+						require.NoError(t, err)
+						blobsSSZ, err := snappy.Decode(nil /* dst */, blobsFile)
+						require.NoError(t, err)
+						for offset := 0; offset < len(blobsSSZ); offset += fieldparams.BlobLength {
+							newBlob := [fieldparams.BlobLength]byte{}
+							copy(newBlob[:], blobsSSZ[offset:])
+							sidecar := &ethpb.BlobSidecar{}
+						}
+					}
 					if step.Block != nil {
 						blockFile, err := util.BazelFileBytes(testsFolderPath, folder.Name(), fmt.Sprint(*step.Block, ".ssz_snappy"))
 						require.NoError(t, err)
